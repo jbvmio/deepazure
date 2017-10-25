@@ -1,0 +1,46 @@
+FROM            centos
+MAINTAINER      jbonds@jbvm.io
+
+RUN rpm --import https://packages.microsoft.com/keys/microsoft.asc && \
+printf '[azure-cli]\n\
+name=Azure CLI\n\
+baseurl=https://packages.microsoft.com/yumrepos/azure-cli\nenabled=1\n\
+gpgcheck=1\n\
+gpgkey=https://packages.microsoft.com/keys/microsoft.asc\n\
+\n\
+' > /etc/yum.repos.d/azure-cli.repo && \
+curl -sSL https://packages.microsoft.com/config/rhel/7/prod.repo -o /etc/yum.repos.d/microsoft.repo && \
+yum install -y azure-cli git openssh openssh-server openssh-clients powershell && \
+echo '$ProgressPreference = "SilentlyContinue"; Install-Module -Name AzureRM.Netcore -Force; Import-Module -Name AzureRM.Netcore; If ($? -eq $true) {Write-Host "Azure PWSH Install Successful" -f green;} Else {Write-Host "Azure PWSH Install NOT Successful" -f red;}' | pwsh -c - && \
+rm -f /etc/ssh/ssh_host_ecdsa_key /etc/ssh/ssh_host_ed25519_key /etc/ssh/ssh_host_dsa_key && \
+ssh-keygen -q -N "" -t rsa -f /etc/ssh/ssh_host_rsa_key && \
+sed -i 's/PermitRootLogin no/PermitRootLogin yes/' /etc/ssh/sshd_config && \
+echo 'root:D33pAzure!' | chpasswd && \
+systemctl enable sshd.service && \
+mkdir /root/DeepAzure && \
+mkdir /root/.ssh && \
+touch /root/.ssh/authorized_keys && \
+chmod 700 /root/.ssh && \
+chmod 600 /root/.ssh/authorized_keys && \
+echo $'#!/bin/bash\n\
+/usr/sbin/init\n\
+/usr/sbin/sshd -D\n\
+' > /run.sh && \
+printf '#Import AzureRM Netcore Modules:\n\
+$ProgressPreference = "SilentlyContinue"\n\
+Get-Module -ListAvailable | ?{$_.Name -match "AzureRM"} | Import-Module\n\
+If ($? -eq $true) {\n\
+        Write-Host "AzureRM Netcore Modules Successfully Loaded" -f green\n\
+}\n\
+Else {\n\
+        Write-Host "Error Loading AzureRM Netcore Modules" -f red\n\
+}\n\
+Disable-AzureRmDataCollection -WarningAction SilentlyContinue\n\
+\n\
+' > /root/.config/powershell/Microsoft.PowerShell_profile.ps1 && \
+chmod 700 /run.sh && \
+yum clean all && \
+history -c
+
+EXPOSE 22
+CMD ["/run.sh"]
