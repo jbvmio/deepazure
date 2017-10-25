@@ -7,10 +7,10 @@ It also contains a docker container I created for the course, adding tools I fel
 
 The docker container contains:
 *  ssh utilities
+*  sshd
 *  Azure CLI
 *  Powershell
 *  Azure Powershell
-
 
 The container may still be in the process of being developed.
 
